@@ -1,0 +1,10 @@
+<library path="src">
+  <class name="LioTuner" type="rqt_lio_tune.plugin.LioTunerPlugin" base_class_type="rqt_gui_py::Plugin">
+    <description>FAST-LIO / Point-LIO parameter tuner with ROS startup.</description>
+    <qtgui>
+      <label>LIO Tuner</label>
+      <icon type="theme">utilities-system-monitor</icon>
+      <statustip>Start ROS and tune LIO parameters.</statustip>
+    </qtgui>
+  </class>
+</library>
