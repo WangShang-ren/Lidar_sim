@@ -45,3 +45,15 @@
 - Gazebo Classic `gzclient` 在本机存在 Ogre 崩溃，因此仿真只开 `gzserver`，用 RViz 看效果。
 - 2026 COD 地图和社区场地 STL 存在局部偏差，右侧和中央部分点位可能卡住。
 - 独立启动真实雷达时，RViz 需要额外发布 `map -> livox_frame` 或 `base_link -> livox_frame` 静态 TF。
+
+## 教师反馈修复（TF / PointCloud2）
+
+- `livox_rviz.launch.py` 增加 `world -> livox_frame` 静态 TF，默认单位变换
+- `run_mid360s_rviz.sh` 改为启动该 launch，自动带 TF、PointCloud2 驱动和 RViz
+- 新增 `livox_pointcloud.rviz`：
+  - Fixed Frame: `world`
+  - Topic: `/livox/lidar` PointCloud2
+  - Decay Time: `0.5`
+  - Size: `0.02`
+- PyQt5 GUI 和 rqt 插件的“启动雷达+RViz”按钮统一改为调用 `run_mid360s_rviz.sh`
+- `livox_timebase_fix.py` 修正为合法 Python 文件，避免 C 风格注释导致运行失败

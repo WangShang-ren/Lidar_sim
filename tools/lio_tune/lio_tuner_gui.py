@@ -190,9 +190,7 @@ class LioTunerWindow(QMainWindow):
         cmd = (
             "set +u; "
             "unset AMENT_CURRENT_PREFIX COLCON_CURRENT_PREFIX; "
-            "source /opt/ros/humble/setup.bash; "
-            "source /home/shaun/static/tools/livox_ws/install/setup.bash; "
-            "exec ros2 launch livox_ros_driver2 rviz_MID360s_launch.py"
+            "exec /home/shaun/static/tools/livox_ws/run_mid360s_rviz.sh"
         )
         self.ros_process = QProcess(self)
         self.ros_process.setProcessChannelMode(QProcess.MergedChannels)

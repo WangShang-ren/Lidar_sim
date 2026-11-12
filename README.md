@@ -4,12 +4,12 @@
 
 - COD 2026 / Gazebo Classic 仿真入口
 - FAST-LIO / Point-LIO 两套 LIO 启动方式
-- MID-360S 真实雷达启动脚本
+- MID-360S 真实雷达启动脚本（含 TF 和 PointCloud2 显示）
 - LIO 参数调优 CLI、PyQt5 小窗口、rqt 插件
 - 2026 地图、场地 STL、效果截图、压缩效果视频
 - 2026 地图 PCD
 
-> 本仓库是“仿真入口 + 工具 + 素材”的整理包，不包含完整的 COD_NAV、COD_RM2026_Navigation、Livox SDK 源码。完整运行需要按下方说明准备上游依赖。
+> 本仓库是“仿真入口 + 工具 + 素材”的整理包，不包含 COD_NAV、COD_RM2026_Navigation、Livox SDK 源码。完整运行需要按下方说明准备上游依赖。
 
 ## 效果
 
@@ -48,7 +48,7 @@
 ├── code/
 │   ├── sim2026/                 # COD_NAV + FAST-LIO + 2026 场地的仿真入口
 │   ├── cod26_sim/               # COD_RM2026 + Point-LIO 的仿真入口
-│   └── livox_ws/                # MID-360S 驱动启动脚本和配置示例
+│   └── livox_ws/                # MID-360S 驱动启动、TF、RViz 配置
 ├── tools/lio_tune/              # 自研 LIO 调参工具
 │   ├── lio_tune.py              # CLI / 交互菜单
 │   ├── lio_tuner_gui.py         # PyQt5 小窗口
@@ -62,48 +62,124 @@
 ├── pcd/RM2026.pcd               # 2026 地图点云（来源见 pcd/README.md）
 └── docs/
     ├── CHANGES.md
+    ├── TF_AND_RVIZ.md
+    ├── SLAM_QA.md
     └── THIRD_PARTY.md
 ```
 
 ## 依赖环境
 
-- Ubuntu 22.04
-- ROS 2 Humble
-- Gazebo Classic 11
-- Nav2 Humble
-- Livox SDK2
-- livox_ros_driver2（MID-360S 需要较新版本，本项目实测 1.2.8）
-- 上游仓库：
-  - [qza36/COD_NAV](https://github.com/qza36/COD_NAV)
-  - [codnavgation/cod\_-rm2026\_-navigation](https://gitee.com/codnavgation/cod_-rm2026_-navigation)
-  - [Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)
-  - [Livox-SDK/Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2)
+实测版本：
 
-## 当前机器上的直接运行命令
+```text
+Ubuntu 22.04
+ROS 2 Humble
+Gazebo Classic 11.10.2
+Nav2 Humble
+Livox SDK2 1.5.2
+livox_ros_driver2 1.2.8
+Python 3.10
+PyQt5
+rqt
+```
 
-> 下面路径是本机整理后的真实路径，换机器时请替换为你的工作区路径。
+雷达：
 
-### 1\. 真实 MID-360S 雷达 + RViz
+```text
+Livox MID-360S
+主机: 192.168.1.50/24
+雷达: 192.168.1.137
+```
+
+> MID-360S 不是 MID-360。必须使用 `MID360s_config.json` 和较新的 `livox_ros_driver2`。旧版 1.0.0 和 Livox Viewer 2.3.0 不支持。
+
+上游仓库：
+
+- [qza36/COD_NAV](https://github.com/qza36/COD_NAV)
+- [codnavgation/cod\_-rm2026\_-navigation](https://gitee.com/codnavgation/cod_-rm2026_-navigation)
+- [Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)
+- [Livox-SDK/Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2)
+
+## TF 关系
+
+真实雷达独立显示时，`livox_frame` 不是凭空存在的，必须把它挂到某个父坐标系上。教师建议“不上实车就写世界坐标系”，本仓库默认：
+
+```text
+world -> livox_frame
+```
+
+这是单位变换，`x=y=z=0`、`rpy=0`。RViz 的 Fixed Frame 使用 `world`。
+
+仿真和实车建议的完整 TF 链：
+
+```text
+# 2026 COD_NAV + FAST-LIO 仿真
+map -> odom -> chassis -> chassis_fake
+chassis -> livox_frame
+
+# 2026 COD_RM2026 + Point-LIO 仿真
+map -> odom -> base_link -> base_link_fake
+base_link -> livox_frame
+
+# 实车
+map -> odom -> base_link
+base_link -> livox_frame   # 使用实际安装外参
+```
+
+查看 TF 树：
+
+```bash
+ros2 run rqt_tf_tree rqt_tf_tree
+# 或
+ros2 run tf2_tools view_frames
+```
+
+检查 `world -> livox_frame`：
+
+```bash
+ros2 run tf2_ros tf2_echo world livox_frame
+```
+
+## RViz 中显示 PointCloud2
+
+`code/livox_ws/livox_pointcloud.rviz` 已配置好：
+
+```text
+Fixed Frame: world
+Topic:       /livox/lidar
+Type:        sensor_msgs/msg/PointCloud2
+Style:       Flat Squares
+Size (m):    0.02
+Decay Time:  0.5
+Alpha:       1
+Color:       Intensity
+```
+
+说明：
+
+- `Decay Time = 0`：只显示当前帧，通常看起来最稀
+- `Decay Time = 0.5`：保留 0.5 秒点云，视觉效果更连续
+- `Decay Time = 1~2`：更密，但太大会拖影
+- `Size (m)`：点的显示大小，不是实际点数量
+- 真正降采样：FAST-LIO 用 `point_filter_num` / `filter_size_map`；Point-LIO 用 `space_downsample_leaf_size`
+
+独立启动雷达：
 
 ```bash
 /home/shaun/static/tools/livox_ws/run_mid360s_rviz.sh
 ```
 
-要求：
+这个脚本现在会自动启动：
 
 ```text
-USB 网卡: 192.168.1.50/24
-雷达 IP: 192.168.1.137
+world -> livox_frame 静态 TF
+livox_ros_driver2（PointCloud2 模式）
+rviz2（livox_pointcloud.rviz）
 ```
 
-检查：
+## 仿真运行
 
-```bash
-ip -br addr
-ping -c 3 192.168.1.137
-```
-
-### 2\. 2026 COD_NAV + FAST-LIO 仿真
+### 2026 COD_NAV + FAST-LIO
 
 ```bash
 /home/shaun/static/tools/cod_ws/sim2026/run_sim_2026.sh
@@ -115,7 +191,7 @@ ping -c 3 192.168.1.137
 /home/shaun/static/tools/cod_ws/go_to.sh 4.6 -5.5 0
 ```
 
-### 3\. 2026 COD_RM2026 + Point-LIO 仿真
+### 2026 COD_RM2026 + Point-LIO
 
 ```bash
 /home/shaun/static/tools/cod26_ws/sim/run_cod26_sim.sh
@@ -195,33 +271,28 @@ grep -R "/home/shaun/static" .
 
 ## 已知问题
 
-1. **MID-360S** 
-   - 必须使用 `MID360s_config.json` 和较新 `livox_ros_driver2`。
-   - 实测 `livox_ros_driver2 1.2.8` 可用。
-   - Livox Viewer 2.3.0 不支持 MID-360S。
-2. **Gazebo GUI 崩溃**
+1. **Gazebo GUI 崩溃**
    - 本机 Gazebo Classic `gzclient` 有 Ogre 断言崩溃。
    - 仿真入口使用 `gzserver` 无界面 + RViz 显示。
-3. **2026 地图和社区场地 STL 存在局部偏差**
+2. **2026 地图和社区场地 STL 存在局部偏差**
    - 左侧和底部走廊点位已跑通。
    - 右侧/中央部分点位可能卡住，需要重新对齐地图和世界模型。
-4. **RViz 黄色 TF 警告**
-   - 独立启动雷达时没有 `livox_frame` TF。
-   - 增加静态 TF：
-
-     ```bash
-     ros2 run tf2_ros static_transform_publisher \
-       --x 0 --y 0 --z 0 --roll 0 --pitch 0 --yaw 0 \
-       --frame-id map --child-frame-id livox_frame
-```
+3. **真实雷达网络地址**
+   - USB 网卡必须是 `192.168.1.50/24`。
+   - 曾经出现过被 NetworkManager 配成 `196.168.1.50` 的情况，会导致驱动 `bind failed`。
 
 ## 关于 PCD
 
 `pcd/RM2026.pcd` 是 2026 地图点云参考文件，来源说明见 [pcd/README.md](pcd/README.md)。  
-本仓库没有包含完整建图过程产生的新 PCD；如需保存自己的 PCD，请参考文档中的建图命令或替换该文件。
+本仓库未提供完整建图过程产生的新 PCD；如需保存自己的 PCD，请参考文档中的建图命令或替换该文件。
+
+- [TF 与 RViz 说明](docs/TF_AND_RVIZ.md)
+- [SLAM / 论文 / 代码理解问答](docs/SLAM_QA.md)
+- [修改记录](docs/CHANGES.md)
+- [第三方来源](docs/THIRD_PARTY.md)
 
 ## 说明
 
 - 本仓库整理的是仿真入口、配置、自研工具和效果素材。
 - 完整运行仍需要上游 COD_NAV / COD_RM2026_Navigation / Livox 驱动。
-- 第三方代码、地图和场地模型版权归各自作者所有，详见 [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md)。
+- 第三方代码、地图和场地模型版权归各自作者所有。
