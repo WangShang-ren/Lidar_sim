@@ -1,10 +1,12 @@
+*.bak.*
 build/
+.DS_Store
+envs/
 install/
 log/
-__pycache__/
-*.pyc
-*.pyo
-*.bak.*
 *.orig
-.DS_Store
+*.pyc
+__pycache__/
+*.pyo
+third_party/
 .vscode/

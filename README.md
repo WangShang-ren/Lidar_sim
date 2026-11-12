@@ -45,27 +45,76 @@
 
 ```text
 .
-├── code/
-│   ├── sim2026/                 # COD_NAV + FAST-LIO + 2026 场地的仿真入口
-│   ├── cod26_sim/               # COD_RM2026 + Point-LIO 的仿真入口
-│   └── livox_ws/                # MID-360S 驱动启动、TF、RViz 配置
+├── envs/                        # meta workspace：本地 ROS 运行环境（git 忽略）
+│   ├── livox_mid360s/           # 真实 MID-360S 驱动
+│   ├── fastlio/                 # FAST-LIO 算法
+│   ├── pointlio/                # Point-LIO 算法
+│   ├── sim_tools/               # Gazebo / world / maps / 地图工具
+│   ├── nav_2026/                # Nav2 launch / params / plugins
+│   └── rqt_ui/                  # rqt 插件构建环境
+├── third_party/                 # Livox-SDK2 / ros_deps（git 忽略）
+├── scripts/                     # 统一入口
+│   ├── menu.sh
+│   ├── run_lidar.sh
+│   ├── run_fastlio_2026.sh
+│   ├── run_pointlio_2026.sh
+│   ├── run_lio_tune.sh
+│   ├── run_lio_tune_gui.sh
+│   ├── go_fastlio_2026.sh
+│   ├── go_pointlio_2026.sh
+│   └── setup_split.sh
+├── code/                        # GitHub 可见的入口/配置快照
+│   ├── sim2026/
+│   ├── cod26_sim/
+│   └── livox_ws/
 ├── tools/lio_tune/              # 自研 LIO 调参工具
-│   ├── lio_tune.py              # CLI / 交互菜单
-│   ├── lio_tuner_gui.py         # PyQt5 小窗口
-│   └── rqt_plugin/              # rqt 插件源码
+│   ├── lio_tune.py
+│   ├── lio_tuner_gui.py
+│   └── rqt_plugin/
 ├── assets/
-│   ├── maps/                    # rmul2026.pgm / yaml
-│   └── worlds/                  # 2026 场地 STL / world
+│   ├── maps/
+│   └── worlds/
 ├── media/
 │   ├── images/
 │   └── videos/
-├── pcd/RM2026.pcd               # 2026 地图点云（来源见 pcd/README.md）
+├── pcd/RM2026.pcd
 └── docs/
     ├── CHANGES.md
+    ├── CODE_GUIDE.md
+    ├── WORKSPACES.md
     ├── TF_AND_RVIZ.md
     ├── SLAM_QA.md
     └── THIRD_PARTY.md
 ```
+
+## Meta Workspace 统一入口
+
+```bash
+# 菜单
+/home/shaun/static/Mtools/rm_sim/scripts/menu.sh
+
+# 真实雷达 + RViz
+/home/shaun/static/Mtools/rm_sim/scripts/run_lidar.sh
+
+# FAST-LIO 2026 仿真
+/home/shaun/static/Mtools/rm_sim/scripts/run_fastlio_2026.sh
+
+# Point-LIO 2026 仿真
+/home/shaun/static/Mtools/rm_sim/scripts/run_pointlio_2026.sh
+
+# 调参
+/home/shaun/static/Mtools/rm_sim/scripts/run_lio_tune.sh
+/home/shaun/static/Mtools/rm_sim/scripts/run_lio_tune_gui.sh
+
+# 发点
+/home/shaun/static/Mtools/rm_sim/scripts/go_fastlio_2026.sh 4.6 -5.5 0
+/home/shaun/static/Mtools/rm_sim/scripts/go_pointlio_2026.sh 4.6 -5.5 0
+
+# 只加载所有 split 环境
+source /home/shaun/static/Mtools/rm_sim/scripts/setup_split.sh
+```
+
+`envs/` 和 `third_party/` 已加入 `.gitignore`，不会上传到 GitHub；仓库只保留入口、配置、工具和素材。
 
 ## 依赖环境
 
@@ -99,6 +148,39 @@ Livox MID-360S
 - [codnavgation/cod\_-rm2026\_-navigation](https://gitee.com/codnavgation/cod_-rm2026_-navigation)
 - [Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)
 - [Livox-SDK/Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2)
+
+系统依赖（示例）：
+
+```bash
+sudo apt install \
+  ros-humble-navigation2 ros-humble-nav2-bringup \
+  ros-humble-slam-toolbox ros-humble-spatio-temporal-voxel-layer \
+  ros-humble-topic-tools ros-humble-xacro ros-humble-joint-state-publisher \
+  ros-humble-pcl-ros ros-humble-gazebo-ros-pkgs ros-humble-rviz2
+```
+
+## 编译顺序
+
+```bash
+source /opt/ros/humble/setup.bash
+
+# 1. 雷达驱动 / 消息
+cd envs/livox_mid360s && colcon build --symlink-install
+
+# 2. LIO 算法
+source envs/livox_mid360s/install/setup.bash
+cd envs/fastlio && colcon build --symlink-install
+cd ../pointlio && colcon build --symlink-install
+
+# 3. 仿真/地图工具
+cd ../sim_tools && colcon build --symlink-install
+
+# 4. Nav2 配置和插件
+cd ../nav_2026 && colcon build --symlink-install
+
+# 5. rqt 插件
+cd ../rqt_ui && colcon build --symlink-install
+```
 
 ## TF 关系
 
@@ -166,7 +248,7 @@ Color:       Intensity
 独立启动雷达：
 
 ```bash
-/home/shaun/static/tools/livox_ws/run_mid360s_rviz.sh
+/home/shaun/static/Mtools/rm_sim/scripts/run_lidar.sh
 ```
 
 这个脚本现在会自动启动：
@@ -182,25 +264,25 @@ rviz2（livox_pointcloud.rviz）
 ### 2026 COD_NAV + FAST-LIO
 
 ```bash
-/home/shaun/static/tools/cod_ws/sim2026/run_sim_2026.sh
+/home/shaun/static/Mtools/rm_sim/scripts/run_fastlio_2026.sh
 ```
 
 发点：
 
 ```bash
-/home/shaun/static/tools/cod_ws/go_to.sh 4.6 -5.5 0
+/home/shaun/static/Mtools/rm_sim/scripts/go_fastlio_2026.sh 4.6 -5.5 0
 ```
 
 ### 2026 COD_RM2026 + Point-LIO
 
 ```bash
-/home/shaun/static/tools/cod26_ws/sim/run_cod26_sim.sh
+/home/shaun/static/Mtools/rm_sim/scripts/run_pointlio_2026.sh
 ```
 
 发点：
 
 ```bash
-/home/shaun/static/tools/cod26_ws/sim/go_cod26.sh 4.6 -5.5 0
+/home/shaun/static/Mtools/rm_sim/scripts/go_pointlio_2026.sh 4.6 -5.5 0
 ```
 
 ## LIO 调参工具
@@ -234,7 +316,7 @@ unset AMENT_CURRENT_PREFIX
 unset COLCON_CURRENT_PREFIX
 
 source /opt/ros/humble/setup.zsh
-source /home/shaun/static/Mtools/lio_tune/rqt_ws/install/setup.zsh
+source /home/shaun/static/Mtools/rm_sim/envs/rqt_ui/install/setup.zsh
 
 rqt --force-discover -s rqt_lio_tune.plugin.LioTunerPlugin
 ```
@@ -286,6 +368,8 @@ grep -R "/home/shaun/static" .
 `pcd/RM2026.pcd` 是 2026 地图点云参考文件，来源说明见 [pcd/README.md](pcd/README.md)。  
 本仓库未提供完整建图过程产生的新 PCD；如需保存自己的 PCD，请参考文档中的建图命令或替换该文件。
 
+- [工作区分层说明](docs/WORKSPACES.md)
+- [代码阅读指南](docs/CODE_GUIDE.md)
 - [TF 与 RViz 说明](docs/TF_AND_RVIZ.md)
 - [SLAM / 论文 / 代码理解问答](docs/SLAM_QA.md)
 - [修改记录](docs/CHANGES.md)

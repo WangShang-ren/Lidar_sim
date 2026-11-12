@@ -1,4 +1,5 @@
 import os
+from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess, TimerAction
@@ -6,8 +7,8 @@ from launch.substitutions import Command
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
-WORLD = '/home/shaun/static/tools/cod_ws/sim2026/worlds/rmul2026.world'
-ROBOT_XACRO = '/home/shaun/static/tools/cod_ws/src/COD_NAV/rm_simulation/pb_rm_simulation/urdf/simulation_waking_robot.xacro'
+WORLD = os.path.join(os.path.dirname(__file__), '..', 'worlds', 'rmul2026.world')
+ROBOT_XACRO = os.path.join(get_package_share_directory('pb_rm_simulation'), 'urdf', 'simulation_waking_robot.xacro')
 
 
 def generate_launch_description():

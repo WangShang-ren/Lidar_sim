@@ -23,18 +23,18 @@ HOME = Path.home()
 STATE_FILE = Path("/home/shaun/static/Mtools/lio_tune/last_state.json")
 LOG_DIR = Path("/home/shaun/static/Mtools/lio_tune/logs")
 
-FAST_SOURCE = Path("/home/shaun/static/tools/cod_ws/src/COD_NAV/FAST_LIO/FAST_LIO/config/mid360.yaml")
-FAST_ACTIVE = Path("/home/shaun/static/tools/cod_ws/install/fast_lio/share/fast_lio/config/mid360.yaml")
-POINT_SOURCE = Path("/home/shaun/static/tools/cod26_ws/src/small_point_lio/config/mid360.yaml")
-POINT_ACTIVE = Path("/home/shaun/static/tools/cod26_ws/install/small_point_lio/share/small_point_lio/config/mid360.yaml")
-POINT_SIM = Path("/home/shaun/static/tools/cod26_ws/sim/config/mid360_sim.yaml")
+FAST_SOURCE = Path("/home/shaun/static/Mtools/rm_sim/envs/fastlio/src/COD_NAV/FAST_LIO/FAST_LIO/config/mid360.yaml")
+FAST_ACTIVE = Path("/home/shaun/static/Mtools/rm_sim/envs/fastlio/install/fast_lio/share/fast_lio/config/mid360.yaml")
+POINT_SOURCE = Path("/home/shaun/static/Mtools/rm_sim/envs/pointlio/src/small_point_lio/config/mid360.yaml")
+POINT_ACTIVE = Path("/home/shaun/static/Mtools/rm_sim/envs/pointlio/install/small_point_lio/share/small_point_lio/config/mid360.yaml")
+POINT_SIM = Path("/home/shaun/static/Mtools/rm_sim/envs/sim_tools/pointlio_sim/config/mid360_sim.yaml")
 
 REGISTRY = {
     "fastlio": {
         "label": "FAST-LIO",
         "node": "fastlio_mapping",
         "ros_node": "fastlio_mapping",
-        "workspace": Path("/home/shaun/static/tools/cod_ws"),
+        "workspace": Path("/home/shaun/static/Mtools/rm_sim/envs/fastlio"),
         "package": "fast_lio",
         "executable": "fastlio_mapping",
         "configs": [FAST_ACTIVE, FAST_SOURCE],
@@ -44,7 +44,7 @@ REGISTRY = {
         "label": "Point-LIO",
         "node": "small_point_lio_node",
         "ros_node": "small_point_lio",
-        "workspace": Path("/home/shaun/static/tools/cod26_ws"),
+        "workspace": Path("/home/shaun/static/Mtools/rm_sim/envs/pointlio"),
         "package": "small_point_lio",
         "executable": "small_point_lio_node",
         "configs": [POINT_ACTIVE, POINT_SOURCE],
@@ -54,7 +54,7 @@ REGISTRY = {
         "label": "Point-LIO (sim)",
         "node": "small_point_lio_node",
         "ros_node": "small_point_lio",
-        "workspace": Path("/home/shaun/static/tools/cod26_ws"),
+        "workspace": Path("/home/shaun/static/Mtools/rm_sim/envs/pointlio"),
         "package": "small_point_lio",
         "executable": "small_point_lio_node",
         "configs": [POINT_SIM, POINT_SOURCE],

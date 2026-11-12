@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 
-WS="/home/shaun/static/tools/cod_ws"
-MAP="$WS/sim2026/maps/rmul2026.yaml"
-LOG_DIR="$WS/log/sim_$(date +%Y%m%d_%H%M%S)"
+SIM="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENVS="$(cd "$SIM/../.." && pwd)"
+FASTLIO="$ENVS/fastlio"
+SIMTOOLS="$ENVS/sim_tools"
+NAV="$ENVS/nav_2026"
+LIVOX="$ENVS/livox_mid360s"
+MAP="$SIM/maps/rmul2026.yaml"
+LOG_DIR="$SIM/logs/sim_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
 source /opt/ros/humble/setup.bash
-source "$WS/install/setup.bash"
+source "$LIVOX/install/setup.bash"
+source "$FASTLIO/install/setup.bash"
+source "$SIMTOOLS/install/setup.bash"
+source "$NAV/install/setup.bash"
 export RCUTILS_LOGGING_BUFFERED_STREAM=1
 
 PIDS=()
@@ -109,13 +117,13 @@ trap cleanup INT TERM EXIT
 
 echo "日志目录: $LOG_DIR"
 echo "[1/5] 启动 Gazebo + Livox + 哨兵..."
-start_bg gazebo ros2 launch "$WS/sim2026/launch/gazebo_rmul2026_cod.launch.py"
+start_bg gazebo ros2 launch "$SIM/launch/gazebo_rmul2026_cod.launch.py"
 GAZEBO_PID=$LAST_PID
 wait_topic /clock 60 || { echo "Gazebo 启动失败"; exit 1; }
 wait_topic /livox/lidar 60 || { echo "Livox 没有数据"; exit 1; }
 
 echo "[2/5] 启动 FAST-LIO + /scan..."
-start_bg fastlio ros2 launch "$WS/sim2026/launch/sim_lio_only_2026.launch.py"
+start_bg fastlio ros2 launch "$SIM/launch/sim_lio_only_2026.launch.py"
 LIO_PID=$LAST_PID
 wait_topic /scan 60 || { echo "/scan 没有数据"; exit 1; }
 wait_topic /Odometry 60 || { echo "/Odometry 没有数据"; exit 1; }
@@ -133,8 +141,8 @@ start_bg map_odom ros2 run tf2_ros static_transform_publisher \
 MAP_ODOM_PID=$LAST_PID
 
 echo "[4/5] 启动 Nav2..."
-start_bg nav2 ros2 launch "$WS/install/nav_bringup/share/nav_bringup/launch/simulation/sim_nav_bringup.launch.py" \
-  map:="$MAP" use_sim_time:=true params_file:="$WS/sim2026/params/sim_nav2_params_2026.yaml" use_composition:=False autostart:=False
+start_bg nav2 ros2 launch "$NAV/install/nav_bringup/share/nav_bringup/launch/simulation/sim_nav_bringup.launch.py" \
+  map:="$MAP" use_sim_time:=true params_file:="$SIM/params/sim_nav2_params_2026.yaml" use_composition:=False autostart:=False
 NAV_PID=$LAST_PID
 
 for node in /map_server /controller_server /smoother_server /planner_server /behavior_server /bt_navigator /waypoint_follower /velocity_smoother; do

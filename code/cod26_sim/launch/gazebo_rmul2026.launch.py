@@ -6,8 +6,8 @@ from launch.substitutions import Command
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
-WORLD = '/home/shaun/static/tools/cod26_ws/sim/worlds/rmul2026.world'
-ROBOT_XACRO = '/home/shaun/static/tools/cod26_ws/sim/urdf/simulation_2026_robot.xacro'
+WORLD = os.path.join(os.path.dirname(__file__), '..', 'worlds', 'rmul2026.world')
+ROBOT_XACRO = os.path.join(os.path.dirname(__file__), '..', 'urdf', 'simulation_2026_robot.xacro')
 
 
 def generate_launch_description():

@@ -2,18 +2,23 @@
 
 set +u
 
-SIM="/home/shaun/static/tools/cod26_ws/sim"
-WS26="/home/shaun/static/tools/cod26_ws"
-WSCOD="/home/shaun/static/tools/cod_ws"
-MAP="$WS26/install/cod_bringup/share/cod_bringup/maps/rmul2026.yaml"
+SIM="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENVS="$(cd "$SIM/../.." && pwd)"
+POINTLIO="$ENVS/pointlio"
+SIMTOOLS="$ENVS/sim_tools"
+NAV="$ENVS/nav_2026"
+LIVOX="$ENVS/livox_mid360s"
+MAP="$NAV/install/cod_bringup/share/cod_bringup/maps/rmul2026.yaml"
 PARAMS="$SIM/config/sim_singlenav2_params.yaml"
 LIO_CONFIG="$SIM/config/mid360_sim.yaml"
 LOG_DIR="$SIM/logs/sim_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
 source /opt/ros/humble/setup.bash
-source "$WSCOD/install/setup.bash"
-source "$WS26/install/setup.bash"
+source "$LIVOX/install/setup.bash"
+source "$POINTLIO/install/setup.bash"
+source "$SIMTOOLS/install/setup.bash"
+source "$NAV/install/setup.bash"
 export RCUTILS_LOGGING_BUFFERED_STREAM=1
 
 PIDS=()
@@ -160,13 +165,13 @@ start_bg cmd_relay ros2 run topic_tools relay /aft_cmd_vel /cmd_vel_sim
 wait_topic /livox/lidar_filtered 30 || { echo "/livox/lidar_filtered 没有数据"; exit 1; }
 
 echo "[5/7] 启动 map_server..."
-start_bg localization ros2 launch "$WS26/install/cod_bringup/share/cod_bringup/launch/localization_launch.py" \
+start_bg localization ros2 launch "$NAV/install/cod_bringup/share/cod_bringup/launch/localization_launch.py" \
   map:="$MAP" use_sim_time:=true params_file:="$PARAMS" autostart:=False use_composition:=False
 wait_node /map_server 60 || { echo "map_server 未启动"; exit 1; }
 set_state /map_server || exit 1
 
 echo "[6/7] 启动 Nav2..."
-start_bg nav2 ros2 launch "$WS26/install/cod_bringup/share/cod_bringup/launch/navigation_launch.py" \
+start_bg nav2 ros2 launch "$NAV/install/cod_bringup/share/cod_bringup/launch/navigation_launch.py" \
   use_sim_time:=true params_file:="$PARAMS" autostart:=False use_composition:=False
 for node in /controller_server /smoother_server /planner_server /behavior_server /bt_navigator /waypoint_follower /velocity_smoother; do
   wait_node "$node" 60 || { echo "节点未启动: $node"; exit 1; }
@@ -183,7 +188,7 @@ done
 
 if [[ "${NO_RVIZ:-0}" != "1" ]]; then
   echo "[7/7] 启动 RViz..."
-  start_bg rviz rviz2 -d "$WS26/install/cod_bringup/share/cod_bringup/rviz/cod_nav.rviz"
+  start_bg rviz rviz2 -d "$NAV/install/cod_bringup/share/cod_bringup/rviz/cod_nav.rviz"
 fi
 
 echo

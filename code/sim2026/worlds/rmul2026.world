@@ -61,7 +61,7 @@
         <collision name="collision">
           <geometry>
             <mesh>
-              <uri>file:///home/shaun/static/tools/cod_ws/sim2026/worlds/rmul_2026.stl</uri>
+              <uri>file:///home/shaun/static/Mtools/rm_sim/envs/sim_tools/sim2026/worlds/rmul_2026.stl</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
@@ -70,7 +70,7 @@
           <cast_shadows>false</cast_shadows>
           <geometry>
             <mesh>
-              <uri>file:///home/shaun/static/tools/cod_ws/sim2026/worlds/rmul_2026.stl</uri>
+              <uri>file:///home/shaun/static/Mtools/rm_sim/envs/sim_tools/sim2026/worlds/rmul_2026.stl</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>

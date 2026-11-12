@@ -164,7 +164,7 @@ space_downsample_leaf_size: 0.5
 新脚本：
 
 ```bash
-/home/shaun/static/tools/livox_ws/run_mid360s_rviz.sh
+/home/shaun/static/Mtools/rm_sim/envs/livox_mid360s/run_mid360s_rviz.sh
 ```
 
 会自动启动：
