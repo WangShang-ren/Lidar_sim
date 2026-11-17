@@ -10,3 +10,7 @@ __pycache__/
 *.pyo
 third_party/
 .vscode/
+.easyview/
+dist/
+tools/lio_tune/state/
+tools/lio_tune/logs/

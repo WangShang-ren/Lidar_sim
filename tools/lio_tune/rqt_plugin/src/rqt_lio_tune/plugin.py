@@ -7,7 +7,22 @@ import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, "/home/shaun/static/Mtools/lio_tune")
+def _find_rm_sim_root():
+    env = os.environ.get("RM_SIM_ROOT")
+    if env:
+        root = Path(env).expanduser().resolve()
+        if (root / "tools" / "lio_tune" / "lio_tune.py").exists():
+            return root
+    here = Path(__file__).resolve()
+    for candidate in (here, *here.parents):
+        if (candidate / "tools" / "lio_tune" / "lio_tune.py").exists():
+            return candidate
+    return None
+
+
+RM_SIM_ROOT = _find_rm_sim_root()
+if RM_SIM_ROOT is not None:
+    sys.path.insert(0, str(RM_SIM_ROOT / "tools" / "lio_tune"))
 
 from python_qt_binding.QtCore import QProcess, Qt, QThread, Signal
 from python_qt_binding.QtWidgets import (
@@ -175,7 +190,7 @@ class LioTunerWidget(QWidget):
         cmd = (
             "set +u; "
             "unset AMENT_CURRENT_PREFIX COLCON_CURRENT_PREFIX; "
-            "exec /home/shaun/static/Mtools/rm_sim/envs/livox_mid360s/run_mid360s_rviz.sh"
+            f"exec {RM_SIM_ROOT}/envs/livox_mid360s/run_mid360s_rviz.sh"
         )
         self.ros_process = QProcess(self)
         self.ros_process.setProcessChannelMode(QProcess.MergedChannels)

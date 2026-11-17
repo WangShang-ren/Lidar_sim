@@ -1,28 +1,25 @@
-# RMUL 2026 3v3 Simulation + LIO Tuning Toolkit
+# RMUL 2026 3v3 Simulation + LIO Toolkit
 
-整理自 RMUL 2026 3v3 导航仿真调试过程，包含：
+RMUL 2026 3v3 导航仿真、真实 MID-360S 雷达、FAST-LIO / Point-LIO 和调参工具的 meta workspace。
 
-- COD 2026 / Gazebo Classic 仿真入口
-- FAST-LIO / Point-LIO 两套 LIO 启动方式
-- MID-360S 真实雷达启动脚本（含 TF 和 PointCloud2 显示）
-- LIO 参数调优 CLI、PyQt5 小窗口、rqt 插件
-- 2026 地图、场地 STL、效果截图、压缩效果视频
-- 2026 地图 PCD
-
-> 本仓库是“仿真入口 + 工具 + 素材”的整理包，不包含 COD_NAV、COD_RM2026_Navigation、Livox SDK 源码。完整运行需要按下方说明准备上游依赖。
+> 本仓库只保留入口、配置、工具和素材。
+>
+> `envs/`、`third_party/` 是本地运行环境，已加入 `.gitignore`，不会上传 GitHub。
+>
+> 本地完整环境已经整理好，日常运行按 README 的入口表操作，不需要再搜索路径。
 
 ## 效果
 
 | 真实雷达 RViz 点云 | LIO Tuner GUI |
-| ------------ | ------------- |
+|---|---|
 | ![](media/images/lidar_pointcloud_rviz.png) | ![](media/images/lio_tuner_gui.png) |
 
 | rqt 插件 | 真实雷达 + GUI 视角 |
-| ------ | ------------- |
+|---|---|
 | ![](media/images/rqt_lio_tune.png) | ![](media/images/rviz_pointcloud.png) |
 
 | 2026 仿真 RViz |
-| ------------ |
+|---|
 | ![](media/images/sim2026_rviz.png) |
 
 效果视频：
@@ -31,94 +28,96 @@
 - [真实雷达 + GUI 点云](media/videos/lidar_pointcloud_gui.mp4)
 - [2026 仿真 RViz 片段](media/videos/sim2026_navigation.mp4)
 
-## 已验证结果
+## 教学文档
 
-- 2026 地图 Nav2 目标 `(4.6, -5.5)` 返回 `SUCCEEDED`
-- 真实 MID-360S `/livox/lidar` 约 `10 Hz`
-- 推荐可跑通点位：左侧和底部走廊
-  - `(0.0, -2.6)`
-  - `(0.0, -5.5)`
-  - `(4.6, -6.2)`
-  - `(4.6, -5.5)`
+从 [教学文档总目录](docs/TUTORIAL_INDEX.md) 开始。
 
-## 目录结构
+- [虚拟仿真：FAST-LIO](docs/TUTORIAL_SIM_FASTLIO.md)
+- [虚拟仿真：Point-LIO](docs/TUTORIAL_SIM_POINTLIO.md)
+- [真实 MID-360S 雷达](docs/TUTORIAL_LIDAR.md)
+- [真实雷达建图](docs/TUTORIAL_MAPPING.md)
+- [LIO 调参](docs/TUTORIAL_LIO_TUNE.md)
+- [串口协议与 COD 代码](docs/TUTORIAL_SERIAL.md)
+- [迁移到另一台机器](docs/TUTORIAL_MIGRATION.md)
+- [常见问题](docs/TROUBLESHOOTING.md)
+
+已验证：
 
 ```text
-.
-├── envs/                        # meta workspace：本地 ROS 运行环境（git 忽略）
-│   ├── livox_mid360s/           # 真实 MID-360S 驱动
+FAST-LIO 2026 仿真：Nav2 active，目标点 (4.6, -5.5) SUCCEEDED
+Point-LIO 2026 仿真：Nav2 active，目标点 (4.6, -5.5) SUCCEEDED
+真实 MID-360S：/livox/lidar 约 10 Hz
+```
+
+---
+
+## 1. Meta Workspace 结构
+
+```text
+rm_sim/
+├── LIO-Tuner.desktop            # 双击启动 LIO Tuner
+├── envs/                        # 本地 ROS 运行环境，git 忽略
+│   ├── livox_mid360s/           # 真实 MID-360S 驱动 + Livox 消息
 │   ├── fastlio/                 # FAST-LIO 算法
 │   ├── pointlio/                # Point-LIO 算法
-│   ├── sim_tools/               # Gazebo / world / maps / 地图工具
-│   ├── nav_2026/                # Nav2 launch / params / plugins
-│   └── rqt_ui/                  # rqt 插件构建环境
-├── third_party/                 # Livox-SDK2 / ros_deps（git 忽略）
+│   ├── sim_tools/               # Gazebo、worlds、maps、pcd2pgm、定位、sim 编排
+│   ├── nav_2026/                # Nav2 launch/params/plugins
+│   └── rqt_ui/                  # rqt_lio_tune 构建环境
+├── third_party/                 # Livox-SDK2 / ros_deps，git 忽略
 ├── scripts/                     # 统一入口
 │   ├── menu.sh
+│   ├── setup_split.sh
 │   ├── run_lidar.sh
 │   ├── run_fastlio_2026.sh
 │   ├── run_pointlio_2026.sh
-│   ├── run_lio_tune.sh
-│   ├── run_lio_tune_gui.sh
 │   ├── go_fastlio_2026.sh
 │   ├── go_pointlio_2026.sh
-│   └── setup_split.sh
+│   ├── run_lio_tune.sh
+│   ├── run_lio_tune_gui.sh
+│   ├── build_all.sh
+│   ├── check_env.sh
+│   ├── install_deps.sh
+│   ├── install_desktop.sh
+│   ├── make_migration_bundle.sh
+│   └── rewrite_paths.sh
 ├── code/                        # GitHub 可见的入口/配置快照
-│   ├── sim2026/
-│   ├── cod26_sim/
-│   └── livox_ws/
-├── tools/lio_tune/              # 自研 LIO 调参工具
-│   ├── lio_tune.py
-│   ├── lio_tuner_gui.py
-│   └── rqt_plugin/
-├── assets/
-│   ├── maps/
-│   └── worlds/
-├── media/
-│   ├── images/
-│   └── videos/
-├── pcd/RM2026.pcd
-└── docs/
-    ├── CHANGES.md
-    ├── CODE_GUIDE.md
-    ├── WORKSPACES.md
-    ├── TF_AND_RVIZ.md
-    ├── SLAM_QA.md
-    └── THIRD_PARTY.md
+├── tools/lio_tune/              # 自研 LIO 调参工具源码
+├── assets/                      # 地图 / 场地 STL
+├── media/                       # 截图 / 压缩视频
+├── pcd/RM2026.pcd               # 2026 地图点云参考文件
+└── docs/                        # 架构、TF、SLAM、来源说明
 ```
 
-## Meta Workspace 统一入口
+### 各环境职责
 
-```bash
-# 菜单
-/home/shaun/static/Mtools/rm_sim/scripts/menu.sh
+| 环境 | 主要包 | 作用 |
+|---|---|---|
+| `envs/livox_mid360s` | `livox_ros_driver2` | 连接真实 MID-360S，发布 PointCloud2/IMU |
+| `envs/fastlio` | `fast_lio` | FAST-LIO 里程计 |
+| `envs/pointlio` | `small_point_lio` | Point-LIO 里程计 |
+| `envs/sim_tools` | `pb_rm_simulation`、`ros2_livox_simulation`、`pcd2pgm`、`ndt_omp_ros2`、`small_gicp_relocalization`、`lidar_localization_ros2`、`patchworkpp`、`sim2026`、`pointlio_sim` | Gazebo 仿真和地图工具 |
+| `envs/nav_2026` | `nav_bringup`、`cod_bringup`、Nav2 插件、`pointcloud_to_laserscan`、`fake_vel_transform`、`cpp_lidar_filter` | Nav2 导航 |
+| `envs/rqt_ui` | `rqt_lio_tune` | rqt 调参插件 |
 
-# 真实雷达 + RViz
-/home/shaun/static/Mtools/rm_sim/scripts/run_lidar.sh
+### 依赖关系
 
-# FAST-LIO 2026 仿真
-/home/shaun/static/Mtools/rm_sim/scripts/run_fastlio_2026.sh
+```text
+livox_mid360s
+  ├── fastlio
+  ├── pointlio
+  └── sim_tools
 
-# Point-LIO 2026 仿真
-/home/shaun/static/Mtools/rm_sim/scripts/run_pointlio_2026.sh
+sim_tools
+  └── nav_2026
 
-# 调参
-/home/shaun/static/Mtools/rm_sim/scripts/run_lio_tune.sh
-/home/shaun/static/Mtools/rm_sim/scripts/run_lio_tune_gui.sh
-
-# 发点
-/home/shaun/static/Mtools/rm_sim/scripts/go_fastlio_2026.sh 4.6 -5.5 0
-/home/shaun/static/Mtools/rm_sim/scripts/go_pointlio_2026.sh 4.6 -5.5 0
-
-# 只加载所有 split 环境
-source /home/shaun/static/Mtools/rm_sim/scripts/setup_split.sh
+rqt_ui 独立
 ```
 
-`envs/` 和 `third_party/` 已加入 `.gitignore`，不会上传到 GitHub；仓库只保留入口、配置、工具和素材。
+---
 
-## 依赖环境
+## 2. 版本与依赖
 
-实测版本：
+实测环境：
 
 ```text
 Ubuntu 22.04
@@ -132,24 +131,15 @@ PyQt5
 rqt
 ```
 
-雷达：
+真实雷达：
 
 ```text
 Livox MID-360S
-主机: 192.168.1.50/24
-雷达: 192.168.1.137
+主机 IP: 192.168.1.50/24
+雷达 IP: 192.168.1.137
 ```
 
-> MID-360S 不是 MID-360。必须使用 `MID360s_config.json` 和较新的 `livox_ros_driver2`。旧版 1.0.0 和 Livox Viewer 2.3.0 不支持。
-
-上游仓库：
-
-- [qza36/COD_NAV](https://github.com/qza36/COD_NAV)
-- [codnavgation/cod\_-rm2026\_-navigation](https://gitee.com/codnavgation/cod_-rm2026_-navigation)
-- [Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)
-- [Livox-SDK/Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2)
-
-系统依赖（示例）：
+系统依赖示例：
 
 ```bash
 sudo apt install \
@@ -159,72 +149,237 @@ sudo apt install \
   ros-humble-pcl-ros ros-humble-gazebo-ros-pkgs ros-humble-rviz2
 ```
 
-## 编译顺序
+> MID-360S 不是 MID-360。  
+> 必须使用 `MID360s_config.json` 和较新的 `livox_ros_driver2`。  
+> 旧版 1.0.0 和 Livox Viewer 2.3.0 不支持 MID-360S。
+
+---
+
+## 3. 第一次编译
+
+按依赖顺序编译：
 
 ```bash
 source /opt/ros/humble/setup.bash
 
 # 1. 雷达驱动 / 消息
-cd envs/livox_mid360s && colcon build --symlink-install
+cd envs/livox_mid360s
+colcon build --symlink-install
 
 # 2. LIO 算法
-source envs/livox_mid360s/install/setup.bash
-cd envs/fastlio && colcon build --symlink-install
-cd ../pointlio && colcon build --symlink-install
+source install/setup.bash
+cd ../fastlio
+colcon build --symlink-install
+cd ../pointlio
+colcon build --symlink-install
 
-# 3. 仿真/地图工具
-cd ../sim_tools && colcon build --symlink-install
+# 3. 仿真和地图工具
+cd ../sim_tools
+colcon build --symlink-install
 
-# 4. Nav2 配置和插件
-cd ../nav_2026 && colcon build --symlink-install
+# 4. Nav2
+cd ../nav_2026
+colcon build --symlink-install
 
 # 5. rqt 插件
-cd ../rqt_ui && colcon build --symlink-install
+cd ../rqt_ui
+colcon build --symlink-install
 ```
 
-## TF 关系
+加载所有环境：
 
-真实雷达独立显示时，`livox_frame` 不是凭空存在的，必须把它挂到某个父坐标系上。教师建议“不上实车就写世界坐标系”，本仓库默认：
+```bash
+source /home/shaun/static/Mtools/rm_sim/scripts/setup_split.sh
+```
+
+---
+
+## 4. 日常运行入口
+
+### 菜单
+
+```bash
+/home/shaun/static/Mtools/rm_sim/scripts/menu.sh
+```
+
+### 真实雷达 + RViz
+
+```bash
+/home/shaun/static/Mtools/rm_sim/scripts/run_lidar.sh
+```
+
+检查：
+
+```bash
+ip -br addr
+# 必须看到 192.168.1.50/24
+ping -c 3 192.168.1.137
+```
+
+### FAST-LIO 2026 仿真
+
+```bash
+/home/shaun/static/Mtools/rm_sim/scripts/run_fastlio_2026.sh
+```
+
+发点：
+
+```bash
+/home/shaun/static/Mtools/rm_sim/scripts/go_fastlio_2026.sh 4.6 -5.5 0
+```
+
+### Point-LIO 2026 仿真
+
+```bash
+/home/shaun/static/Mtools/rm_sim/scripts/run_pointlio_2026.sh
+```
+
+发点：
+
+```bash
+/home/shaun/static/Mtools/rm_sim/scripts/go_pointlio_2026.sh 4.6 -5.5 0
+```
+
+### LIO 调参
+
+```bash
+/home/shaun/static/Mtools/rm_sim/scripts/run_lio_tune.sh
+/home/shaun/static/Mtools/rm_sim/scripts/run_lio_tune_gui.sh
+```
+
+常用：
+
+```bash
+python3 tools/lio_tune/lio_tune.py list
+python3 tools/lio_tune/lio_tune.py show fastlio
+python3 tools/lio_tune/lio_tune.py set fastlio point_filter_num 2 --restart
+python3 tools/lio_tune/lio_tune.py restart pointlio
+python3 tools/lio_tune/lio_tune.py rollback
+```
+
+### rqt 插件
+
+```bash
+unset AMENT_CURRENT_PREFIX
+unset COLCON_CURRENT_PREFIX
+
+source /opt/ros/humble/setup.zsh
+source envs/rqt_ui/install/setup.zsh
+
+rqt --force-discover -s rqt_lio_tune.plugin.LioTunerPlugin
+```
+
+---
+
+## 5. 配置文件位置
+
+### FAST-LIO
+
+源码：
+
+```text
+envs/fastlio/src/fast_lio/config/mid360.yaml
+```
+
+实际安装：
+
+```text
+envs/fastlio/install/fast_lio/share/fast_lio/config/mid360.yaml
+```
+
+参数：
+
+```yaml
+point_filter_num: 1
+filter_size_surf: 0.2
+filter_size_map: 0.4
+```
+
+### Point-LIO
+
+源码：
+
+```text
+envs/pointlio/src/small_point_lio/config/mid360.yaml
+```
+
+实际安装：
+
+```text
+envs/pointlio/install/small_point_lio/share/small_point_lio/config/mid360.yaml
+```
+
+参数：
+
+```yaml
+point_filter_num: 1
+space_downsample: true
+space_downsample_leaf_size: 0.5
+```
+
+### 仿真配置
+
+```text
+envs/sim_tools/sim2026/          # FAST-LIO 2026 仿真
+envs/sim_tools/pointlio_sim/     # Point-LIO 2026 仿真
+```
+
+### Nav2 配置
+
+```text
+envs/nav_2026/src/nav_bringup/params/
+envs/nav_2026/src/cod_bringup/params/
+```
+
+---
+
+## 6. TF 关系
+
+真实雷达独立显示：
 
 ```text
 world -> livox_frame
 ```
 
-这是单位变换，`x=y=z=0`、`rpy=0`。RViz 的 Fixed Frame 使用 `world`。
-
-仿真和实车建议的完整 TF 链：
+FAST-LIO 仿真：
 
 ```text
-# 2026 COD_NAV + FAST-LIO 仿真
 map -> odom -> chassis -> chassis_fake
 chassis -> livox_frame
+```
 
-# 2026 COD_RM2026 + Point-LIO 仿真
+Point-LIO 仿真：
+
+```text
 map -> odom -> base_link -> base_link_fake
 base_link -> livox_frame
+```
 
-# 实车
+实车：
+
+```text
 map -> odom -> base_link
 base_link -> livox_frame   # 使用实际安装外参
 ```
 
-查看 TF 树：
+检查：
 
 ```bash
 ros2 run rqt_tf_tree rqt_tf_tree
-# 或
-ros2 run tf2_tools view_frames
-```
-
-检查 `world -> livox_frame`：
-
-```bash
 ros2 run tf2_ros tf2_echo world livox_frame
 ```
 
-## RViz 中显示 PointCloud2
+---
 
-`code/livox_ws/livox_pointcloud.rviz` 已配置好：
+## 7. RViz 显示 PointCloud2
+
+配置文件：
+
+```text
+code/livox_ws/livox_pointcloud.rviz
+```
+
+关键设置：
 
 ```text
 Fixed Frame: world
@@ -239,144 +394,98 @@ Color:       Intensity
 
 说明：
 
-- `Decay Time = 0`：只显示当前帧，通常看起来最稀
-- `Decay Time = 0.5`：保留 0.5 秒点云，视觉效果更连续
-- `Decay Time = 1~2`：更密，但太大会拖影
-- `Size (m)`：点的显示大小，不是实际点数量
-- 真正降采样：FAST-LIO 用 `point_filter_num` / `filter_size_map`；Point-LIO 用 `space_downsample_leaf_size`
+```text
+Decay Time = 0      只显示当前帧，看起来最稀
+Decay Time = 0.5    推荐
+Decay Time = 1~2    更密，但可能拖影
 
-独立启动雷达：
-
-```bash
-/home/shaun/static/Mtools/rm_sim/scripts/run_lidar.sh
+Size = 0.01         细
+Size = 0.02         推荐
+Size = 0.05         更明显
 ```
 
-这个脚本现在会自动启动：
+注意：
 
 ```text
-world -> livox_frame 静态 TF
-livox_ros_driver2（PointCloud2 模式）
-rviz2（livox_pointcloud.rviz）
+Decay Time 是显示累积，不是传感器真实密度
+Size 是点的显示大小，不是降采样
 ```
 
-## 仿真运行
+---
 
-### 2026 COD_NAV + FAST-LIO
+## 8. PCD
 
-```bash
-/home/shaun/static/Mtools/rm_sim/scripts/run_fastlio_2026.sh
+当前仓库包含：
+
+```text
+pcd/RM2026.pcd
 ```
 
-发点：
+它是 2026 地图点云参考文件，来源见 `pcd/README.md`，不是本次仿真新建的 PCD。
 
-```bash
-/home/shaun/static/Mtools/rm_sim/scripts/go_fastlio_2026.sh 4.6 -5.5 0
-```
-
-### 2026 COD_RM2026 + Point-LIO
-
-```bash
-/home/shaun/static/Mtools/rm_sim/scripts/run_pointlio_2026.sh
-```
-
-发点：
-
-```bash
-/home/shaun/static/Mtools/rm_sim/scripts/go_pointlio_2026.sh 4.6 -5.5 0
-```
-
-## LIO 调参工具
-
-CLI：
-
-```bash
-python3 /home/shaun/static/Mtools/lio_tune/lio_tune.py
-```
-
-常用：
-
-```bash
-python3 /home/shaun/static/Mtools/lio_tune/lio_tune.py list
-python3 /home/shaun/static/Mtools/lio_tune/lio_tune.py show fastlio
-python3 /home/shaun/static/Mtools/lio_tune/lio_tune.py set fastlio point_filter_num 2 --restart
-python3 /home/shaun/static/Mtools/lio_tune/lio_tune.py restart pointlio
-python3 /home/shaun/static/Mtools/lio_tune/lio_tune.py rollback
-```
-
-PyQt5 小窗口：
-
-```bash
-python3 /home/shaun/static/Mtools/lio_tune/lio_tuner_gui.py
-```
-
-rqt 插件：
-
-```bash
-unset AMENT_CURRENT_PREFIX
-unset COLCON_CURRENT_PREFIX
-
-source /opt/ros/humble/setup.zsh
-source /home/shaun/static/Mtools/rm_sim/envs/rqt_ui/install/setup.zsh
-
-rqt --force-discover -s rqt_lio_tune.plugin.LioTunerPlugin
-```
-
-### 调参可改参数
-
-FAST-LIO：
+FAST-LIO 保存：
 
 ```yaml
-point_filter_num: 1
-filter_size_surf: 0.2
-filter_size_map: 0.4
+pcd_save:
+  pcd_save_en: true
+  interval: -1
+map_file_path: "/home/shaun/static/Mtools/rm_sim/pcd/sim_test.pcd"
 ```
 
-Point-LIO：
+Point-LIO 保存：
 
 ```yaml
-point_filter_num: 1
-space_downsample: true
-space_downsample_leaf_size: 0.5
+save_pcd: true
 ```
 
-工具会自动备份配置，重启对应 LIO 节点；不会重启雷达驱动、Gazebo 或 Nav2。
-
-## 迁移到自己的目录
-
-本包中的脚本来自本机整理路径。复制到自己的 workspace 后，建议先搜索：
+运行后调用：
 
 ```bash
-grep -R "/home/shaun/static" .
+ros2 service call /map_save std_srvs/srv/Trigger
 ```
 
-然后把脚本里的绝对路径改成自己的路径，或使用环境变量。
+---
 
-## 已知问题
+## 9. 已知问题
 
 1. **Gazebo GUI 崩溃**
    - 本机 Gazebo Classic `gzclient` 有 Ogre 断言崩溃。
-   - 仿真入口使用 `gzserver` 无界面 + RViz 显示。
+   - 仿真入口使用 `gzserver` 无界面 + RViz。
+
 2. **2026 地图和社区场地 STL 存在局部偏差**
    - 左侧和底部走廊点位已跑通。
-   - 右侧/中央部分点位可能卡住，需要重新对齐地图和世界模型。
-3. **真实雷达网络地址**
+   - 右侧/中央部分点位可能卡住，需要继续对齐 world 和 map。
+
+3. **真实雷达网络**
    - USB 网卡必须是 `192.168.1.50/24`。
-   - 曾经出现过被 NetworkManager 配成 `196.168.1.50` 的情况，会导致驱动 `bind failed`。
+   - 曾出现被 NetworkManager 配成 `196.168.1.50`，会导致驱动 `bind failed`。
 
-## 关于 PCD
+4. **PointCloud2 太稀/太密**
+   - RViz 调 `Decay Time` 和 `Size`。
+   - 真正降采样看 LIO 的 `point_filter_num` / `leaf_size`。
 
-`pcd/RM2026.pcd` 是 2026 地图点云参考文件，来源说明见 [pcd/README.md](pcd/README.md)。  
-本仓库未提供完整建图过程产生的新 PCD；如需保存自己的 PCD，请参考文档中的建图命令或替换该文件。
+---
 
-- [工作区分层说明](docs/WORKSPACES.md)
-- [代码阅读指南](docs/CODE_GUIDE.md)
-- [TF 与 RViz 说明](docs/TF_AND_RVIZ.md)
-- [SLAM / 论文 / 代码理解问答](docs/SLAM_QA.md)
-- [修改记录](docs/CHANGES.md)
-- [第三方来源](docs/THIRD_PARTY.md)
+## 10. 文档
 
-## 说明
+```text
+docs/WORKSPACES.md    # meta workspace 分层
+docs/CODE_GUIDE.md    # 代码阅读路线
+docs/TF_AND_RVIZ.md   # TF 和 PointCloud2
+docs/TUTORIAL_SERIAL.md # 串口协议与 COD 代码
+docs/TUTORIAL_MIGRATION.md # 迁移到另一台机器
+docs/SLAM_QA.md       # 老师问题准备
+docs/CHANGES.md       # 修改记录
+docs/THIRD_PARTY.md   # 第三方来源
+```
 
-- 本仓库整理的是仿真入口、配置、自研工具和效果素材。
-- 完整运行仍需要上游 COD_NAV / COD_RM2026_Navigation / Livox 驱动。
-- 第三方代码、地图和场地模型版权归各自作者所有。
+---
+
+## 11. 上游和来源
+
+- [qza36/COD_NAV](https://github.com/qza36/COD_NAV)
+- [codnavgation/cod_-rm2026_-navigation](https://gitee.com/codnavgation/cod_-rm2026_-navigation)
+- [Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)
+- [Livox-SDK/Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2)
+
+第三方代码、地图和场地模型版权归各自作者所有。

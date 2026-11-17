@@ -1,25 +1,21 @@
-# 老师问题准备：代码、SLAM、论文和 Odin
+# 代码、SLAM、论文和 Odin
 
 这份文档用于准备老师追问时的回答，不是“标准答案”，建议结合自己实际做过的调试过程讲。
-
-## 1. “你代码是纯 AI 吗？你能看懂你的代码吗？”
-
-建议不要回答“全是”或“全不是”，而是把边界讲清楚：
 
 > AI 参与了脚手架、重复配置和一些排错，但关键链路是我自己在本机逐段跑通和验证的：雷达驱动、TF、话题类型、LIO 重启、Nav2 起停、地图和 world 对齐。  
 > 我能按模块讲清楚每个节点负责什么，以及为什么这么配。
 
 需要能讲清楚的模块：
 
-| 模块 | 作用 | 关键点 |
-|---|---|---|
-| `code/sim2026/run_sim_2026.sh` | 启动 Gazebo + FAST-LIO + Nav2 | 启动顺序、`use_sim_time`、map/odom 对齐 |
-| `simulation` / `gazebo_rmul2026_cod.launch.py` | 加载 2026 world 和机器人 | `gzserver`、spawn 位置、TF |
-| `sim_lio_only_2026.launch.py` | FAST-LIO + `/scan` | 不重复发布 `map->odom`，由脚本统一发布 |
-| `code/cod26_sim/run_cod26_sim.sh` | Point-LIO + Nav2 | Point-LIO 配置、速度 relay、TF |
-| `livox_timebase_fix.py` | 修正 Gazebo Livox 时间戳 | `timebase` 与 header stamp |
-| `tools/lio_tune/lio_tune.py` | 改 YAML + 重启 LIO | 备份、参数类型、节点名、sim/real |
-| `lio_tuner_gui.py` / rqt 插件 | GUI 包装 | 只负责启动和调用核心逻辑 |
+| 模块                                         | 作用                          | 关键点                           |
+| ------------------------------------------ | --------------------------- | ----------------------------- |
+| `code/sim2026/run_sim_2026.sh`             | 启动 Gazebo + FAST-LIO + Nav2 | 启动顺序、`use_sim_time`、map/odom 对齐 |
+| `simulation` / `gazebo_rmul2026_cod.launch.py` | 加载 2026 world 和机器人          | `gzserver`、spawn 位置、TF        |
+| `sim_lio_only_2026.launch.py`              | FAST-LIO + `/scan`          | 不重复发布 `map->odom`，由脚本统一发布     |
+| `code/cod26_sim/run_cod26_sim.sh`          | Point-LIO + Nav2            | Point-LIO 配置、速度 relay、TF      |
+| `livox_timebase_fix.py`                    | 修正 Gazebo Livox 时间戳         | `timebase` 与 header stamp     |
+| `tools/lio_tune/lio_tune.py`               | 改 YAML + 重启 LIO             | 备份、参数类型、节点名、sim/real          |
+| `lio_tuner_gui.py` / rqt 插件                | GUI 包装                      | 只负责启动和调用核心逻辑                  |
 
 如果老师问某一行，最好能回答：
 
@@ -29,7 +25,7 @@
 怎么验证它生效
 ```
 
-## 2. “你对 SLAM 的看法是什么？”
+## 2\. “你对 SLAM 的看法是什么？”
 
 可以按下面的结构回答，避免只说“建图定位”：
 
@@ -76,7 +72,7 @@ RM 场地不是纯静态理想环境：
 - 用 `lio_tune` 做参数对比
 - 记录失败模式：TF 时间、IMU 单位、点云时间戳、地图/world 偏差
 
-## 3. “你需要发表相关论文吗？”
+## 3\. “你需要发表相关论文吗？”
 
 建议回答：
 
@@ -100,7 +96,7 @@ baseline
 失败案例分析
 ```
 
-## 4. “Odin” 是什么，怎么接？
+## 4\. “Odin” 是什么，怎么接？
 
 老师提到准备采购另一个雷达 `Odin`。  
 在代码层面，不能直接把它当 MID-360S 用，需要先拿到：
@@ -128,7 +124,7 @@ baseline
 
 建议先向老师确认 Odin 的准确型号和资料，再决定是否替换 MID-360S 或做双雷达融合。
 
-## 5. 答辩时的简短版本
+## 5\. 答辩时的简短版本
 
 如果老师只给 1 分钟：
 

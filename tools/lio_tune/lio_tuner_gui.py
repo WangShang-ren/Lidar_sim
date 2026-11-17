@@ -6,7 +6,8 @@ import io
 import sys
 from pathlib import Path
 
-sys.path.insert(0, "/home/shaun/static/Mtools/lio_tune")
+TOOL_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(TOOL_DIR))
 
 from PyQt5.QtCore import QProcess, Qt, QThread, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -27,6 +28,8 @@ from PyQt5.QtWidgets import (
 )
 
 import lio_tune as lt
+
+ROOT = lt.ROOT
 
 
 class Worker(QThread):
@@ -60,6 +63,7 @@ class LioTunerWindow(QMainWindow):
         self.resize(860, 680)
 
         self.ros_process = None
+        self.sim_process = None
         self.worker = None
 
         self.algo_combo = QComboBox()
@@ -69,6 +73,9 @@ class LioTunerWindow(QMainWindow):
         self.show_btn = QPushButton("查看参数")
         self.start_ros_btn = QPushButton("启动雷达+RViz")
         self.stop_ros_btn = QPushButton("停止雷达+RViz")
+        self.start_fastlio_btn = QPushButton("启动 FAST-LIO 仿真")
+        self.start_pointlio_btn = QPushButton("启动 Point-LIO 仿真")
+        self.stop_all_btn = QPushButton("停止全部")
         self.restart_lio_btn = QPushButton("重启 LIO")
         self.stop_lio_btn = QPushButton("停止 LIO")
         self.rollback_btn = QPushButton("回滚")
@@ -113,6 +120,11 @@ class LioTunerWindow(QMainWindow):
         ros_row.addWidget(self.start_ros_btn)
         ros_row.addWidget(self.stop_ros_btn)
 
+        sim_row = QHBoxLayout()
+        sim_row.addWidget(self.start_fastlio_btn)
+        sim_row.addWidget(self.start_pointlio_btn)
+        sim_row.addWidget(self.stop_all_btn)
+
         lio_row = QHBoxLayout()
         lio_row.addWidget(self.restart_lio_btn)
         lio_row.addWidget(self.stop_lio_btn)
@@ -126,6 +138,7 @@ class LioTunerWindow(QMainWindow):
         layout = QVBoxLayout(central)
         layout.addLayout(top)
         layout.addLayout(ros_row)
+        layout.addLayout(sim_row)
         layout.addLayout(lio_row)
         layout.addWidget(self.table, 1)
         layout.addLayout(edit_row)
@@ -136,6 +149,9 @@ class LioTunerWindow(QMainWindow):
         self.show_btn.clicked.connect(self.refresh_params)
         self.start_ros_btn.clicked.connect(self.start_ros)
         self.stop_ros_btn.clicked.connect(self.stop_ros)
+        self.start_fastlio_btn.clicked.connect(self.start_fastlio)
+        self.start_pointlio_btn.clicked.connect(self.start_pointlio)
+        self.stop_all_btn.clicked.connect(self.stop_all)
         self.restart_lio_btn.clicked.connect(self.restart_lio)
         self.stop_lio_btn.clicked.connect(self.stop_lio)
         self.rollback_btn.clicked.connect(self.rollback)
@@ -187,10 +203,13 @@ class LioTunerWindow(QMainWindow):
         if self.ros_process is not None and self.ros_process.state() == QProcess.Running:
             self.log("ROS 已经在运行")
             return
+        if self.sim_process is not None and self.sim_process.state() == QProcess.Running:
+            self.log("请先停止仿真，再启动真实雷达")
+            return
         cmd = (
             "set +u; "
             "unset AMENT_CURRENT_PREFIX COLCON_CURRENT_PREFIX; "
-            "exec /home/shaun/static/Mtools/rm_sim/envs/livox_mid360s/run_mid360s_rviz.sh"
+            f"exec {ROOT}/envs/livox_mid360s/run_mid360s_rviz.sh"
         )
         self.ros_process = QProcess(self)
         self.ros_process.setProcessChannelMode(QProcess.MergedChannels)
@@ -219,6 +238,58 @@ class LioTunerWindow(QMainWindow):
         subprocess.run(["pkill", "-x", "livox_ros_drive"], capture_output=True)
         subprocess.run(["pkill", "-x", "rviz2"], capture_output=True)
         self.log("已停止雷达驱动和 RViz")
+
+    def start_fastlio(self):
+        self.start_sim_script(str(ROOT / "scripts" / "run_fastlio_2026.sh"))
+
+    def start_pointlio(self):
+        self.start_sim_script(str(ROOT / "scripts" / "run_pointlio_2026.sh"))
+
+    def start_sim_script(self, script):
+        if self.ros_process is not None and self.ros_process.state() == QProcess.Running:
+            self.log("请先停止雷达+RViz，再启动仿真")
+            return
+        if self.sim_process is not None and self.sim_process.state() == QProcess.Running:
+            self.log("仿真已经在运行，请先停止全部")
+            return
+        cmd = f"exec {script}"
+        self.sim_process = QProcess(self)
+        self.sim_process.setProcessChannelMode(QProcess.MergedChannels)
+        self.sim_process.readyReadStandardOutput.connect(self._sim_output)
+        self.sim_process.finished.connect(self._sim_finished)
+        self.sim_process.start("bash", ["-lc", cmd])
+        self.log(f"正在启动仿真: {script}")
+
+    def _sim_output(self):
+        if self.sim_process:
+            data = bytes(self.sim_process.readAllStandardOutput()).decode("utf-8", "replace")
+            if data.strip():
+                self.log(data.rstrip())
+
+    def _sim_finished(self, code, status):
+        self.log(f"仿真进程结束: exit_code={code}, status={status}")
+
+    def stop_sim(self):
+        if self.sim_process is not None:
+            self.sim_process.terminate()
+            self.sim_process.waitForFinished(3000)
+            self.sim_process.kill()
+            self.sim_process = None
+        import subprocess
+        for name in [
+            "gzserver", "gzclient", "fastlio_mapping", "small_point_lio",
+            "map_server", "controller_serv", "smoother_server",
+            "planner_server", "behavior_server", "bt_navigator",
+            "waypoint_follow", "velocity_smooth", "lifecycle_manag",
+            "static_transfor", "rviz2",
+        ]:
+            subprocess.run(["pkill", "-x", name], capture_output=True)
+        self.log("已停止仿真进程")
+
+    def stop_all(self):
+        self.stop_ros()
+        self.stop_sim()
+        self.log("已停止全部")
 
     def restart_lio(self):
         algo = self.algo()
@@ -276,6 +347,10 @@ class LioTunerWindow(QMainWindow):
             self.ros_process.terminate()
             self.ros_process.waitForFinished(1500)
             self.ros_process.kill()
+        if self.sim_process is not None and self.sim_process.state() == QProcess.Running:
+            self.sim_process.terminate()
+            self.sim_process.waitForFinished(1500)
+            self.sim_process.kill()
         event.accept()
 
 

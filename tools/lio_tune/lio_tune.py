@@ -20,21 +20,39 @@ from pathlib import Path
 import yaml
 
 HOME = Path.home()
-STATE_FILE = Path("/home/shaun/static/Mtools/lio_tune/last_state.json")
-LOG_DIR = Path("/home/shaun/static/Mtools/lio_tune/logs")
 
-FAST_SOURCE = Path("/home/shaun/static/Mtools/rm_sim/envs/fastlio/src/COD_NAV/FAST_LIO/FAST_LIO/config/mid360.yaml")
-FAST_ACTIVE = Path("/home/shaun/static/Mtools/rm_sim/envs/fastlio/install/fast_lio/share/fast_lio/config/mid360.yaml")
-POINT_SOURCE = Path("/home/shaun/static/Mtools/rm_sim/envs/pointlio/src/small_point_lio/config/mid360.yaml")
-POINT_ACTIVE = Path("/home/shaun/static/Mtools/rm_sim/envs/pointlio/install/small_point_lio/share/small_point_lio/config/mid360.yaml")
-POINT_SIM = Path("/home/shaun/static/Mtools/rm_sim/envs/sim_tools/pointlio_sim/config/mid360_sim.yaml")
+
+def _find_root():
+    env = os.environ.get("RM_SIM_ROOT")
+    candidates = []
+    if env:
+        candidates.append(Path(env).expanduser().resolve())
+    here = Path(__file__).resolve()
+    candidates.extend(here.parents)
+    candidates.append(Path("/home/shaun/static/Mtools/rm_sim"))
+    for candidate in candidates:
+        if (candidate / "envs").is_dir() and (candidate / "scripts").is_dir():
+            return candidate
+    return here.parent
+
+
+ROOT = _find_root()
+STATE_DIR = Path(os.environ.get("LIO_TUNE_STATE_DIR", ROOT / "tools" / "lio_tune" / "state"))
+STATE_FILE = STATE_DIR / "last_state.json"
+LOG_DIR = Path(os.environ.get("LIO_TUNE_LOG_DIR", ROOT / "tools" / "lio_tune" / "logs"))
+
+FAST_SOURCE = ROOT / "envs" / "fastlio" / "src" / "fast_lio" / "config" / "mid360.yaml"
+FAST_ACTIVE = ROOT / "envs" / "fastlio" / "install" / "fast_lio" / "share" / "fast_lio" / "config" / "mid360.yaml"
+POINT_SOURCE = ROOT / "envs" / "pointlio" / "src" / "small_point_lio" / "config" / "mid360.yaml"
+POINT_ACTIVE = ROOT / "envs" / "pointlio" / "install" / "small_point_lio" / "share" / "small_point_lio" / "config" / "mid360.yaml"
+POINT_SIM = ROOT / "envs" / "sim_tools" / "pointlio_sim" / "config" / "mid360_sim.yaml"
 
 REGISTRY = {
     "fastlio": {
         "label": "FAST-LIO",
         "node": "fastlio_mapping",
         "ros_node": "fastlio_mapping",
-        "workspace": Path("/home/shaun/static/Mtools/rm_sim/envs/fastlio"),
+        "workspace": ROOT / "envs" / "fastlio",
         "package": "fast_lio",
         "executable": "fastlio_mapping",
         "configs": [FAST_ACTIVE, FAST_SOURCE],
@@ -44,7 +62,7 @@ REGISTRY = {
         "label": "Point-LIO",
         "node": "small_point_lio_node",
         "ros_node": "small_point_lio",
-        "workspace": Path("/home/shaun/static/Mtools/rm_sim/envs/pointlio"),
+        "workspace": ROOT / "envs" / "pointlio",
         "package": "small_point_lio",
         "executable": "small_point_lio_node",
         "configs": [POINT_ACTIVE, POINT_SOURCE],
@@ -54,7 +72,7 @@ REGISTRY = {
         "label": "Point-LIO (sim)",
         "node": "small_point_lio_node",
         "ros_node": "small_point_lio",
-        "workspace": Path("/home/shaun/static/Mtools/rm_sim/envs/pointlio"),
+        "workspace": ROOT / "envs" / "pointlio",
         "package": "small_point_lio",
         "executable": "small_point_lio_node",
         "configs": [POINT_SIM, POINT_SOURCE],
@@ -273,6 +291,7 @@ def write_param(algo, key, text):
         "backups": backups,
         "time": datetime.now().isoformat(),
     }
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     STATE_FILE.write_text(json.dumps(state, indent=2))
     return old, value, backups
 

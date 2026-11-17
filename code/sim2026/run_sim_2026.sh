@@ -167,7 +167,7 @@ done
 
 if [[ "${NO_RVIZ:-0}" != "1" ]]; then
   echo "启动 RViz..."
-  start_bg rviz rviz2 -d "$WS/install/nav_bringup/share/nav_bringup/rviz/cod_nav.rviz"
+  start_bg rviz rviz2 -d "$SIM/sim2026.rviz"
   RVIZ_PID=$LAST_PID
 fi
 

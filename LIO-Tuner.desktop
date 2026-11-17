@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LIO Tuner
+Comment=Start lidar/simulation and tune FAST-LIO / Point-LIO
+Exec=/home/shaun/static/Mtools/rm_sim/scripts/run_lio_tune_gui.sh
+Path=/home/shaun/static/Mtools/rm_sim
+Icon=utilities-system-monitor
+Terminal=false
+StartupNotify=true
+Categories=Development;Robotics;

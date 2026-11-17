@@ -1,15 +1,11 @@
 # TF 和 RViz PointCloud2 说明
 
-## 老师指出的问题
-
-老师主要指出两点：
-
 1. 没有说明 `livox_frame` 与其他坐标系的 TF 关系
 2. RViz 里点云显示太稀/太密，需要调 PointCloud2 显示参数
 
 这两点对应的修复如下。
 
-## 1. TF 关系
+## 1\. TF 关系
 
 独立启动 MID-360S 时，驱动只发布点云：
 
@@ -96,7 +92,7 @@ ros2 run tf2_tools view_frames
 ros2 run tf2_ros tf2_echo world livox_frame
 ```
 
-## 2. RViz 中订阅 PointCloud2
+## 2\. RViz 中订阅 PointCloud2
 
 `code/livox_ws/livox_pointcloud.rviz` 已经显式配置：
 
@@ -159,7 +155,7 @@ space_downsample: true
 space_downsample_leaf_size: 0.5
 ```
 
-## 3. 启动方式
+## 3\. 启动方式
 
 新脚本：
 

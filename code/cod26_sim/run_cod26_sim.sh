@@ -188,7 +188,7 @@ done
 
 if [[ "${NO_RVIZ:-0}" != "1" ]]; then
   echo "[7/7] 启动 RViz..."
-  start_bg rviz rviz2 -d "$NAV/install/cod_bringup/share/cod_bringup/rviz/cod_nav.rviz"
+  start_bg rviz rviz2 -d "$SIM/pointlio_sim.rviz"
 fi
 
 echo
